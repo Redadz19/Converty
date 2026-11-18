@@ -5,7 +5,8 @@ import subprocess
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QPixmap, QPainter
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QFileDialog, QTableWidget, QTableWidgetItem, QHeaderView,
@@ -132,8 +133,19 @@ class MainWindow(QMainWindow):
         self.header_panel.setObjectName("headerPanel")
         header = QHBoxLayout(self.header_panel)
         header.setContentsMargins(22, 16, 22, 16)
-        self.brand_icon = QLabel("ورقة")
+        self.brand_icon = QLabel()
         self.brand_icon.setObjectName("brandIcon")
+        self.brand_icon.setFixedSize(66, 76)
+        logo_root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+        logo_path = logo_root / "assets" / "waraqa.svg"
+        if logo_path.exists():
+            renderer = QSvgRenderer(str(logo_path))
+            logo_pixmap = QPixmap(66, 76)
+            logo_pixmap.fill(Qt.transparent)
+            painter = QPainter(logo_pixmap)
+            renderer.render(painter)
+            painter.end()
+            self.brand_icon.setPixmap(logo_pixmap)
         header.addWidget(self.brand_icon)
         brand = QVBoxLayout()
         self.title = QLabel("EPS to PDF PRO")
