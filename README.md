@@ -10,7 +10,9 @@ Modern Windows desktop utility for batch conversion of EPS / EPSF files to PDF u
 - Page sizing: preserve EPS bounding box, A4, A3
 - Color handling: preserve, RGB, CMYK, grayscale
 - Per-file status, progress and conversion summary
-- Arabic / English interface foundation
+- Arabic / English interface
+- About tab with publisher information and website
+- In-app update check and one-click EXE replacement from GitHub Releases
 - Windows x64 executable built automatically by GitHub Actions
 
 ## Requirements
@@ -30,13 +32,13 @@ python src\main.py
 Run `build.bat`. The executable is generated at `dist\EPS_to_PDF_PRO.exe`.
 
 ## GitHub Actions
-Every push to main builds a Windows executable and uploads it as an Actions artifact. Push a tag such as `v2.0.0` to publish the executable as a GitHub Release asset.
+Every push to main builds a Windows executable and uploads it as an Actions artifact. A push to `main` builds the Windows executable and publishes the `v2.1.0` GitHub Release asset used by the in-app updater.
 
 ## Ghostscript
 Install Ghostscript x64 and make `gswin64c.exe` available on PATH, or set the `GHOSTSCRIPT_EXE` environment variable to its full path.
 
 ## Roadmap
 - Installer and signed executable
-- In-app update channel
+- Installer and signed executable
 - Persistent conversion history and exportable logs
 - Advanced EPS compatibility tests
