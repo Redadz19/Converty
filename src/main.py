@@ -321,10 +321,10 @@ class MainWindow(QMainWindow):
         self.about_version.setAlignment(Qt.AlignCenter)
         self.about_version.setObjectName("subtitle")
         about_layout.addWidget(self.about_version)
-        about_info = QLabel("Publisher: Riadh Terrouche. RedaDZ19\\nWebsite: www.waraka.com\\nEPS / EPSF to PDF conversion utility")
-        about_info.setAlignment(Qt.AlignCenter)
-        about_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        about_layout.addWidget(about_info)
+        self.about_info = QLabel("Publisher: Riadh Terrouche. RedaDZ19\\nWebsite: www.waraka.com\\nEPS / EPSF to PDF conversion utility")
+        self.about_info.setAlignment(Qt.AlignCenter)
+        self.about_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        about_layout.addWidget(self.about_info)
         self.website_link = QLabel('<a href="https://www.waraka.com">www.waraka.com</a>')
         self.website_link.setAlignment(Qt.AlignCenter)
         self.website_link.setOpenExternalLinks(True)
@@ -445,6 +445,7 @@ class MainWindow(QMainWindow):
             self.tabs.setTabText(1, "حول البرنامج")
             self.update_button.setText("التحقق من التحديثات")
             self.about_version.setText(f"الإصدار {APP_VERSION}")
+            self.about_info.setText("الناشر: Riadh Terrouche. RedaDZ19\\nالموقع: www.waraka.com\\nأداة تحويل ملفات EPS / EPSF إلى PDF")
             self.status.setText("●  جاهز")
         else:
             self.subtitle.setText("Professional EPS conversion workspace")
@@ -465,6 +466,7 @@ class MainWindow(QMainWindow):
             self.tabs.setTabText(1, "About")
             self.update_button.setText("Check for updates")
             self.about_version.setText(f"Version {APP_VERSION}")
+            self.about_info.setText("Publisher: Riadh Terrouche. RedaDZ19\\nWebsite: www.waraka.com\\nEPS / EPSF to PDF conversion utility")
             self.status.setText("●  Ready")
 
     def toggle_language(self):
