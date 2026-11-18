@@ -1,0 +1,39 @@
+name: Build EPS to PDF PRO
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Build executable
+        run: pyinstaller --noconfirm --clean --windowed --name EPS_to_PDF_PRO src/main.py
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EPS-to-PDF-PRO-Windows-x64
+          path: dist/EPS_to_PDF_PRO.exe
+          if-no-files-found: error
+      - name: Publish release asset
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/EPS_to_PDF_PRO.exe
