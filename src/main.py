@@ -9,7 +9,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QFileDialog, QTableWidget, QTableWidgetItem, QHeaderView,
-    QComboBox, QProgressBar, QLineEdit, QMessageBox, QFrame
+    QComboBox, QProgressBar, QLineEdit, QMessageBox, QFrame, QAbstractItemView
 )
 
 APP_VERSION = "2.0.0"
@@ -33,7 +33,7 @@ class FileTable(QTableWidget):
 
     def __init__(self):
         super().__init__(0, 4)
-        self.setHorizontalHeaderLabels(["EPS file", "Size", "Status", "PDF output"])
+        self.setHorizontalHeaderLabels(["EPS File", "Size", "Status", "PDF Output"])
         header = self.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -41,9 +41,12 @@ class FileTable(QTableWidget):
         header.setSectionResizeMode(3, QHeaderView.Stretch)
         self.setAcceptDrops(True)
         self.setAlternatingRowColors(True)
-        self.setSelectionBehavior(QTableWidget.SelectRows)
-        self.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.verticalHeader().hide()
+        self.verticalHeader().setDefaultSectionSize(46)
+        self.setShowGrid(True)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -105,8 +108,9 @@ class ConversionWorker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"EPS to PDF PRO  {APP_VERSION}")
-        self.resize(1120, 760)
+        self.setWindowTitle(f"EPS to PDF PRO {APP_VERSION}")
+        self.setMinimumSize(980, 700)
+        self.resize(1500, 1000)
         self.files = []
         self.worker = None
         self.ghostscript = locate_ghostscript()
@@ -120,57 +124,83 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
-        root.setContentsMargins(28, 24, 28, 24)
-        root.setSpacing(15)
+        root.setContentsMargins(20, 16, 20, 16)
+        root.setSpacing(12)
 
-        header = QHBoxLayout()
+        # Branded top banner
+        self.header_panel = QFrame()
+        self.header_panel.setObjectName("headerPanel")
+        header = QHBoxLayout(self.header_panel)
+        header.setContentsMargins(22, 16, 22, 16)
+        self.brand_icon = QLabel("📄")
+        self.brand_icon.setObjectName("brandIcon")
+        header.addWidget(self.brand_icon)
         brand = QVBoxLayout()
         self.title = QLabel("EPS to PDF PRO")
         self.title.setObjectName("title")
         self.subtitle = QLabel("Professional EPS conversion workspace")
-        self.subtitle.setObjectName("muted")
+        self.subtitle.setObjectName("subtitle")
         brand.addWidget(self.title)
         brand.addWidget(self.subtitle)
         header.addLayout(brand)
         header.addStretch()
-        self.language_button = QPushButton("العربية")
+        self.version_badge = QLabel(APP_VERSION)
+        self.version_badge.setObjectName("versionBadge")
+        header.addWidget(self.version_badge)
+        self.language_button = QPushButton("🌐  العربية")
+        self.language_button.setObjectName("languageButton")
         self.language_button.clicked.connect(self.toggle_language)
         header.addWidget(self.language_button)
-        root.addLayout(header)
+        root.addWidget(self.header_panel)
 
+        # Drop zone
         self.drop_panel = QFrame()
         self.drop_panel.setObjectName("dropPanel")
         drop = QVBoxLayout(self.drop_panel)
-        drop.setContentsMargins(22, 22, 22, 22)
+        drop.setContentsMargins(20, 18, 20, 18)
+        drop.setSpacing(8)
         self.drop_title = QLabel()
         self.drop_title.setObjectName("dropTitle")
         self.drop_title.setAlignment(Qt.AlignCenter)
         self.drop_hint = QLabel()
-        self.drop_hint.setObjectName("muted")
+        self.drop_hint.setObjectName("dropHint")
         self.drop_hint.setAlignment(Qt.AlignCenter)
         actions = QHBoxLayout()
+        actions.setSpacing(12)
         actions.addStretch()
         self.add_files_button = QPushButton()
+        self.add_files_button.setObjectName("addFiles")
         self.add_files_button.clicked.connect(self.add_files)
         self.add_folder_button = QPushButton()
+        self.add_folder_button.setObjectName("addFolder")
         self.add_folder_button.clicked.connect(self.add_folder)
         actions.addWidget(self.add_files_button)
         actions.addWidget(self.add_folder_button)
         actions.addStretch()
         drop.addWidget(self.drop_title)
         drop.addWidget(self.drop_hint)
-        drop.addSpacing(8)
+        drop.addSpacing(4)
         drop.addLayout(actions)
         root.addWidget(self.drop_panel)
 
+        # File queue
         self.table = FileTable()
+        self.table.setObjectName("fileTable")
         self.table.dropped.connect(self.add_paths)
         root.addWidget(self.table, 1)
 
-        settings = QFrame()
-        settings.setObjectName("settings")
-        settings_layout = QHBoxLayout(settings)
-        settings_layout.setContentsMargins(14, 10, 14, 10)
+        # Settings panel
+        self.settings_panel = QFrame()
+        self.settings_panel.setObjectName("settingsPanel")
+        settings_outer = QVBoxLayout(self.settings_panel)
+        settings_outer.setContentsMargins(18, 12, 18, 14)
+        settings_outer.setSpacing(10)
+        self.settings_title = QLabel("⚙  Conversion Settings")
+        self.settings_title.setObjectName("sectionTitle")
+        settings_outer.addWidget(self.settings_title)
+        settings_layout = QHBoxLayout()
+        settings_layout.setSpacing(18)
+
         self.quality = QComboBox()
         self.quality.addItems(["150 DPI", "300 DPI", "600 DPI"])
         self.quality.setCurrentText("300 DPI")
@@ -178,89 +208,172 @@ class MainWindow(QMainWindow):
         self.page.addItems(["EPS original size", "A4", "A3"])
         self.color = QComboBox()
         self.color.addItems(["Preserve", "RGB", "CMYK", "Grayscale"])
-        for caption, widget in (("Quality", self.quality), ("Page size", self.page), ("Color mode", self.color)):
-            column = QVBoxLayout()
-            label = QLabel(caption)
-            label.setObjectName("muted")
-            column.addWidget(label)
-            column.addWidget(widget)
-            settings_layout.addLayout(column)
-        root.addWidget(settings)
 
+        self.quality_label = self._setting_column(settings_layout, "Quality", "▧", self.quality)
+        self.page_label = self._setting_column(settings_layout, "Page Size", "▤", self.page)
+        self.color_label = self._setting_column(settings_layout, "Color Mode", "◉", self.color)
+        settings_layout.addSpacing(8)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.VLine)
+        separator.setObjectName("verticalSeparator")
+        settings_layout.addWidget(separator)
+        output_col = QVBoxLayout()
+        self.output_label = QLabel("Output Folder")
+        self.output_label.setObjectName("settingLabel")
+        output_col.addWidget(self.output_label)
         output_row = QHBoxLayout()
-        self.output_label = QLabel("Output")
         self.output_path = QLineEdit(str(self.output_dir))
         self.output_path.setReadOnly(True)
-        self.browse_button = QPushButton("Browse")
+        self.browse_button = QPushButton("Browse…")
+        self.browse_button.setObjectName("browseButton")
         self.browse_button.clicked.connect(self.choose_output)
-        output_row.addWidget(self.output_label)
         output_row.addWidget(self.output_path, 1)
         output_row.addWidget(self.browse_button)
-        root.addLayout(output_row)
+        output_col.addLayout(output_row)
+        settings_layout.addLayout(output_col, 2)
+        settings_outer.addLayout(settings_layout)
+        root.addWidget(self.settings_panel)
 
+        # Footer actions and progress
         footer = QHBoxLayout()
-        self.status = QLabel("Ready")
-        self.status.setObjectName("muted")
+        self.status = QLabel("●  Ready")
+        self.status.setObjectName("status")
+        footer.addWidget(self.status)
         self.progress = QProgressBar()
+        self.progress.setObjectName("progress")
         self.progress.setValue(0)
-        self.clear_button = QPushButton("Clear list")
+        self.progress.setFormat("%p%")
+        footer.addWidget(self.progress, 1)
+        self.clear_button = QPushButton("▤  Clear List")
+        self.clear_button.setObjectName("clearButton")
         self.clear_button.clicked.connect(self.clear_list)
-        self.convert_button = QPushButton("Convert to PDF  →")
+        self.convert_button = QPushButton("⚡  Convert to PDF  →")
         self.convert_button.setObjectName("primary")
         self.convert_button.clicked.connect(self.start_conversion)
-        footer.addWidget(self.status)
-        footer.addStretch()
         footer.addWidget(self.clear_button)
         footer.addWidget(self.convert_button)
         root.addLayout(footer)
-        root.addWidget(self.progress)
+
+    def _setting_column(self, parent, caption, glyph, widget):
+        column = QVBoxLayout()
+        label = QLabel(f"{glyph}   {caption}")
+        label.setObjectName("settingLabel")
+        column.addWidget(label)
+        column.addWidget(widget)
+        parent.addLayout(column, 1)
+        return label
 
     def _apply_theme(self):
         self.setStyleSheet("""
-            QMainWindow, QWidget { background:#0b1220; color:#e8eef8; font-family:'Segoe UI'; font-size:10pt; }
-            QLabel#title { font-size:25pt; font-weight:700; color:#f8fbff; }
-            QLabel#muted { color:#91a2bb; }
-            QLabel#dropTitle { font-size:17pt; font-weight:650; color:#f1f6ff; }
-            QFrame#dropPanel { background:#111d31; border:2px dashed #365a86; border-radius:18px; }
-            QFrame#settings { background:#111d31; border:1px solid #263b59; border-radius:14px; }
-            QTableWidget { background:#101a2b; alternate-background-color:#142238; border:1px solid #263b59; border-radius:12px; gridline-color:#263b59; }
-            QHeaderView::section { background:#1a2a42; color:#a9bdd8; padding:10px; border:0; font-weight:600; }
-            QLineEdit, QComboBox { background:#17263c; border:1px solid #304766; border-radius:8px; padding:9px; color:#edf4ff; }
-            QPushButton { background:#1b2d47; border:1px solid #385477; border-radius:9px; padding:10px 16px; color:#edf4ff; font-weight:600; }
-            QPushButton:hover { background:#294365; }
-            QPushButton#primary { background:#3478f6; border:0; color:white; padding:12px 22px; }
-            QPushButton#primary:hover { background:#4b8aff; }
-            QProgressBar { background:#17263c; border:0; border-radius:6px; height:10px; text-align:center; }
-            QProgressBar::chunk { background:#3478f6; border-radius:6px; }
+            QMainWindow, QWidget {
+                background:#07152d; color:#edf4ff;
+                font-family:'Segoe UI','Arial'; font-size:10pt;
+            }
+            QFrame#headerPanel {
+                background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #102d59,stop:0.55 #071b42,stop:1 #241b63);
+                border:1px solid #1764bd; border-radius:15px;
+            }
+            QLabel#brandIcon { font-size:38pt; min-width:72px; }
+            QLabel#title { font-size:27pt; font-weight:800; color:#ffffff; }
+            QLabel#subtitle { color:#a9d4ff; font-size:12pt; font-style:italic; }
+            QLabel#versionBadge {
+                background:#087df5; color:white; border-radius:10px;
+                padding:8px 12px; font-size:13pt; font-weight:800;
+            }
+            QPushButton#languageButton {
+                background:#102c53; border:1px solid #3b75b9; border-radius:22px;
+                padding:10px 18px; font-weight:700;
+            }
+            QFrame#dropPanel {
+                background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #142e55,stop:1 #10264a);
+                border:2px dashed #3988e8; border-radius:16px;
+            }
+            QLabel#dropTitle { font-size:19pt; font-weight:750; color:#f5f9ff; }
+            QLabel#dropHint { color:#a8c8ed; font-size:11pt; }
+            QPushButton {
+                background:#203a5f; border:1px solid #42658f; border-radius:9px;
+                padding:10px 17px; color:#f2f7ff; font-weight:650;
+            }
+            QPushButton:hover { background:#31547f; }
+            QPushButton#addFiles { background:#087cf0; border:0; padding:12px 22px; font-size:11pt; }
+            QPushButton#addFolder { background:#079b43; border:0; padding:12px 22px; font-size:11pt; }
+            QTableWidget#fileTable {
+                background:#0b1b34; alternate-background-color:#102442;
+                border:1px solid #294b76; border-radius:11px;
+                gridline-color:#203c61; selection-background-color:#174b85;
+            }
+            QHeaderView::section {
+                background:#1a3459; color:#e5efff; padding:12px;
+                border:0; border-right:1px solid #29466d; font-weight:750; font-size:10pt;
+            }
+            QTableWidget::item { padding:8px; }
+            QFrame#settingsPanel {
+                background:#102849; border:1px solid #28558b; border-radius:13px;
+            }
+            QLabel#sectionTitle { font-size:14pt; font-weight:800; color:#f4f8ff; }
+            QLabel#settingLabel { color:#d5e7ff; font-weight:700; font-size:10pt; }
+            QFrame#verticalSeparator { color:#42658c; }
+            QLineEdit, QComboBox {
+                background:#0c1e3a; border:1px solid #35577f; border-radius:7px;
+                padding:9px 10px; color:#f2f7ff; min-height:22px;
+            }
+            QComboBox QAbstractItemView {
+                background:#102849; color:#f2f7ff; selection-background-color:#176ac4;
+            }
+            QPushButton#browseButton { background:#087cf0; border:0; }
+            QLabel#status { color:#39e36f; font-weight:800; font-size:11pt; min-width:130px; }
+            QProgressBar {
+                background:#1b355b; border:0; border-radius:7px;
+                height:15px; color:white; text-align:center; font-weight:700;
+            }
+            QProgressBar::chunk { background:#087cf0; border-radius:7px; }
+            QPushButton#clearButton { padding:12px 18px; }
+            QPushButton#primary {
+                background:#086ff0; border:0; border-radius:10px;
+                color:white; padding:14px 22px; font-size:11pt; font-weight:800;
+            }
+            QPushButton#primary:hover { background:#2587ff; }
+            QPushButton:disabled { color:#8195b1; background:#263b59; }
         """)
 
     def _translate(self):
         arabic = self.language == "ar"
         self.setLayoutDirection(Qt.RightToLeft if arabic else Qt.LeftToRight)
         if arabic:
+            self.title.setText("EPS to PDF PRO")
             self.subtitle.setText("مساحة احترافية لتحويل ملفات EPS")
+            self.language_button.setText("🌐  English")
             self.drop_title.setText("أفلت ملفات EPS أو المجلدات هنا")
-            self.drop_hint.setText("يمكنك إضافة ملفات منفردة أو فحص المجلدات الفرعية")
-            self.add_files_button.setText("＋ إضافة ملفات")
-            self.add_folder_button.setText("▣ إضافة مجلد")
-            self.language_button.setText("English")
+            self.drop_hint.setText("أضف ملفات منفردة أو افحص المجلدات بما فيها المجلدات الفرعية")
+            self.add_files_button.setText("＋  إضافة ملفات")
+            self.add_folder_button.setText("📁  إضافة مجلد")
+            self.table.setHorizontalHeaderLabels(["ملف EPS", "الحجم", "الحالة", "ملف PDF الناتج"])
+            self.settings_title.setText("⚙  إعدادات التحويل")
+            self.quality_label.setText("▧   الجودة")
+            self.page_label.setText("▤   حجم الصفحة")
+            self.color_label.setText("◉   نمط الألوان")
             self.output_label.setText("مجلد الإخراج")
-            self.browse_button.setText("استعراض")
+            self.browse_button.setText("استعراض…")
             self.clear_button.setText("مسح القائمة")
-            self.convert_button.setText("تحويل إلى PDF  ←")
-            self.status.setText("جاهز")
+            self.convert_button.setText("⚡  تحويل إلى PDF  ←")
+            self.status.setText("●  جاهز")
         else:
             self.subtitle.setText("Professional EPS conversion workspace")
+            self.language_button.setText("🌐  العربية")
             self.drop_title.setText("Drop EPS files or folders here")
             self.drop_hint.setText("Add individual files or scan folders including subfolders")
-            self.add_files_button.setText("＋ Add files")
-            self.add_folder_button.setText("▣ Add folder")
-            self.language_button.setText("العربية")
-            self.output_label.setText("Output")
-            self.browse_button.setText("Browse")
-            self.clear_button.setText("Clear list")
-            self.convert_button.setText("Convert to PDF  →")
-            self.status.setText("Ready")
+            self.add_files_button.setText("＋  Add files")
+            self.add_folder_button.setText("📁  Add folder")
+            self.table.setHorizontalHeaderLabels(["EPS File", "Size", "Status", "PDF Output"])
+            self.settings_title.setText("⚙  Conversion Settings")
+            self.quality_label.setText("▧   Quality")
+            self.page_label.setText("▤   Page Size")
+            self.color_label.setText("◉   Color Mode")
+            self.output_label.setText("Output Folder")
+            self.browse_button.setText("Browse…")
+            self.clear_button.setText("▤  Clear List")
+            self.convert_button.setText("⚡  Convert to PDF  →")
+            self.status.setText("●  Ready")
 
     def toggle_language(self):
         self.language = "ar" if self.language == "en" else "en"
@@ -290,12 +403,12 @@ class MainWindow(QMainWindow):
             self.files.append(path)
             row = self.table.rowCount()
             self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(path.name))
+            self.table.setItem(row, 0, QTableWidgetItem("📄  " + path.name))
             self.table.setItem(row, 1, QTableWidgetItem(f"{path.stat().st_size / 1024:.1f} KB"))
             self.table.setItem(row, 2, QTableWidgetItem("Queued"))
-            self.table.setItem(row, 3, QTableWidgetItem(""))
+            self.table.setItem(row, 3, QTableWidgetItem(path.stem + ".pdf"))
             known.add(str(path).casefold())
-        self.status.setText(f"{len(self.files)} EPS file(s) queued")
+        self.status.setText(f"●  {len(self.files)} EPS file(s) queued")
 
     def choose_output(self):
         selected = QFileDialog.getExistingDirectory(self, "Choose output folder", str(self.output_dir))
@@ -309,7 +422,7 @@ class MainWindow(QMainWindow):
         self.files.clear()
         self.table.setRowCount(0)
         self.progress.setValue(0)
-        self.status.setText("Ready")
+        self.status.setText("●  Ready" if self.language == "en" else "●  جاهز")
 
     def start_conversion(self):
         if not self.files:
@@ -330,29 +443,40 @@ class MainWindow(QMainWindow):
                 target = self.output_dir / f"{source.stem}_{suffix}.pdf"
                 suffix += 1
             jobs.append((source, target))
-        dpi = self.quality.currentText().split()[0]
-        page_mode = self.page.currentText()
-        color_mode = self.color.currentText()
         self.convert_button.setEnabled(False)
         self.clear_button.setEnabled(False)
         self.progress.setValue(0)
-        self.worker = ConversionWorker(jobs, self.ghostscript, dpi, page_mode, color_mode)
+        self.worker = ConversionWorker(
+            jobs, self.ghostscript, self.quality.currentText().split()[0],
+            self.page.currentText(), self.color.currentText()
+        )
         self.worker.file_status.connect(self.update_file_status)
         self.worker.progress_changed.connect(self.progress.setValue)
         self.worker.completed.connect(self.conversion_finished)
         self.worker.start()
-        self.status.setText("Converting…")
+        self.status.setText("●  Converting…" if self.language == "en" else "●  جارٍ التحويل…")
 
     def update_file_status(self, row, state, detail):
-        self.table.item(row, 2).setText(state)
-        self.table.item(row, 3).setText(detail)
+        status_item = self.table.item(row, 2)
+        output_item = self.table.item(row, 3)
+        status_item.setText(state)
+        if state == "Completed":
+            status_item.setForeground(Qt.green)
+            output_item.setText(Path(detail).name)
+            output_item.setToolTip(detail)
+        elif state == "Failed":
+            status_item.setForeground(Qt.red)
+            output_item.setText(detail)
+            output_item.setToolTip(detail)
+        elif state == "Converting":
+            status_item.setForeground(Qt.cyan)
 
     def conversion_finished(self):
         self.convert_button.setEnabled(True)
         self.clear_button.setEnabled(True)
         completed = sum(self.table.item(row, 2).text() == "Completed" for row in range(self.table.rowCount()))
         failed = sum(self.table.item(row, 2).text() == "Failed" for row in range(self.table.rowCount()))
-        self.status.setText(f"Finished — {completed} completed, {failed} failed")
+        self.status.setText(f"●  Finished — {completed} completed, {failed} failed")
         QMessageBox.information(
             self, "Conversion finished",
             f"Completed: {completed}\nFailed: {failed}\n\nOutput folder:\n{self.output_dir}"
