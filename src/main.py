@@ -2,6 +2,9 @@ import os
 import sys
 import shutil
 import subprocess
+import json
+import tempfile
+import urllib.request
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
@@ -10,10 +13,12 @@ from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QFileDialog, QTableWidget, QTableWidgetItem, QHeaderView,
-    QComboBox, QProgressBar, QLineEdit, QMessageBox, QFrame, QAbstractItemView
+    QComboBox, QProgressBar, QLineEdit, QMessageBox, QFrame, QAbstractItemView, QTabWidget
 )
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
+GITHUB_REPO = "Redadz19/Converty"
+RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 
 def locate_ghostscript():
@@ -106,6 +111,37 @@ class ConversionWorker(QThread):
         self.completed.emit()
 
 
+
+class UpdateWorker(QThread):
+    finished_check = Signal(bool, str, str)
+
+    def run(self):
+        try:
+            req = urllib.request.Request(RELEASES_API, headers={"Accept": "application/vnd.github+json", "User-Agent": "EPS-to-PDF-PRO"})
+            with urllib.request.urlopen(req, timeout=20) as response:
+                release = json.loads(response.read().decode("utf-8"))
+            latest = str(release.get("tag_name", "")).lstrip("v")
+            if tuple(int(x) for x in latest.split(".")) <= tuple(int(x) for x in APP_VERSION.split(".")):
+                self.finished_check.emit(False, APP_VERSION, "already_latest")
+                return
+            asset = next((a for a in release.get("assets", []) if a.get("name") == "EPS_to_PDF_PRO.exe"), None)
+            if not asset:
+                self.finished_check.emit(False, latest, "asset_missing")
+                return
+            if not getattr(sys, "frozen", False):
+                self.finished_check.emit(False, latest, "frozen_required")
+                return
+            target = Path(tempfile.gettempdir()) / "EPS_to_PDF_PRO_update.exe"
+            req = urllib.request.Request(asset["browser_download_url"], headers={"User-Agent": "EPS-to-PDF-PRO"})
+            with urllib.request.urlopen(req, timeout=120) as response, open(target, "wb") as output:
+                shutil.copyfileobj(response, output)
+            if not target.exists() or target.stat().st_size < 1000000:
+                raise RuntimeError("Downloaded update is incomplete.")
+            self.finished_check.emit(True, latest, str(target))
+        except Exception as exc:
+            self.finished_check.emit(False, APP_VERSION, "error:" + str(exc))
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -124,8 +160,13 @@ class MainWindow(QMainWindow):
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
-        root = QVBoxLayout(central)
-        root.setContentsMargins(20, 16, 20, 16)
+        outer = QVBoxLayout(central)
+        outer.setContentsMargins(12, 10, 12, 10)
+        self.tabs = QTabWidget()
+        outer.addWidget(self.tabs)
+        main_page = QWidget()
+        root = QVBoxLayout(main_page)
+        root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(12)
 
         # Branded top banner
@@ -259,12 +300,44 @@ class MainWindow(QMainWindow):
         self.clear_button = QPushButton("▤  Clear List")
         self.clear_button.setObjectName("clearButton")
         self.clear_button.clicked.connect(self.clear_list)
-        self.convert_button = QPushButton("⚡  Convert to PDF  →")
-        self.convert_button.setObjectName("primary")
-        self.convert_button.clicked.connect(self.start_conversion)
         footer.addWidget(self.clear_button)
-        footer.addWidget(self.convert_button)
         root.addLayout(footer)
+        self.tabs.addTab(main_page, "Converter")
+
+        about_page = QWidget()
+        about_layout = QVBoxLayout(about_page)
+        about_layout.setContentsMargins(28, 28, 28, 28)
+        about_layout.addStretch()
+        about_logo = QLabel()
+        about_logo.setAlignment(Qt.AlignCenter)
+        about_logo.setFixedHeight(150)
+        about_logo.setPixmap(self.brand_icon.pixmap().scaledToHeight(140, Qt.SmoothTransformation))
+        about_layout.addWidget(about_logo)
+        about_title = QLabel("EPS to PDF PRO")
+        about_title.setAlignment(Qt.AlignCenter)
+        about_title.setObjectName("title")
+        about_layout.addWidget(about_title)
+        self.about_version = QLabel(f"Version {APP_VERSION}")
+        self.about_version.setAlignment(Qt.AlignCenter)
+        self.about_version.setObjectName("subtitle")
+        about_layout.addWidget(self.about_version)
+        about_info = QLabel("Publisher: Riadh Terrouche. RedaDZ19\\nWebsite: www.waraka.com\\nEPS / EPSF to PDF conversion utility")
+        about_info.setAlignment(Qt.AlignCenter)
+        about_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        about_layout.addWidget(about_info)
+        self.website_link = QLabel('<a href="https://www.waraka.com">www.waraka.com</a>')
+        self.website_link.setAlignment(Qt.AlignCenter)
+        self.website_link.setOpenExternalLinks(True)
+        about_layout.addWidget(self.website_link)
+        self.update_button = QPushButton("Check for updates")
+        self.update_button.setObjectName("primary")
+        self.update_button.clicked.connect(self.check_for_updates)
+        about_layout.addWidget(self.update_button, 0, Qt.AlignHCenter)
+        self.update_status = QLabel("")
+        self.update_status.setAlignment(Qt.AlignCenter)
+        about_layout.addWidget(self.update_status)
+        about_layout.addStretch()
+        self.tabs.addTab(about_page, "About")
 
     def _setting_column(self, parent, caption, glyph, widget):
         column = QVBoxLayout()
@@ -343,6 +416,9 @@ class MainWindow(QMainWindow):
                 color:white; padding:11px 17px; font-size:10pt; font-weight:700;
             }
             QPushButton#primary:hover { background:#435f78; }
+            QTabWidget::pane { border:1px solid #d6dde4; border-radius:8px; background:#f8fafb; }
+            QTabBar::tab { background:#e8edf1; color:#45596c; padding:9px 18px; margin:3px; border-radius:6px; }
+            QTabBar::tab:selected { background:#526f89; color:white; }
             QPushButton:disabled { color:#98a4ae; background:#e4e8ec; }
         """)
 
@@ -365,7 +441,10 @@ class MainWindow(QMainWindow):
             self.output_label.setText("مجلد الإخراج")
             self.browse_button.setText("استعراض…")
             self.clear_button.setText("مسح القائمة")
-            self.convert_button.setText("⚡  تحويل إلى PDF  ←")
+            self.tabs.setTabText(0, "التحويل")
+            self.tabs.setTabText(1, "حول البرنامج")
+            self.update_button.setText("التحقق من التحديثات")
+            self.about_version.setText(f"الإصدار {APP_VERSION}")
             self.status.setText("●  جاهز")
         else:
             self.subtitle.setText("Professional EPS conversion workspace")
@@ -382,7 +461,10 @@ class MainWindow(QMainWindow):
             self.output_label.setText("Output Folder")
             self.browse_button.setText("Browse…")
             self.clear_button.setText("▤  Clear List")
-            self.convert_button.setText("⚡  Convert to PDF  →")
+            self.tabs.setTabText(0, "Converter")
+            self.tabs.setTabText(1, "About")
+            self.update_button.setText("Check for updates")
+            self.about_version.setText(f"Version {APP_VERSION}")
             self.status.setText("●  Ready")
 
     def toggle_language(self):
@@ -461,7 +543,6 @@ class MainWindow(QMainWindow):
             jobs.append((source, target))
         if not jobs:
             return
-        self.convert_button.setEnabled(False)
         self.clear_button.setEnabled(False)
         self.progress.setValue(0)
         self.worker = ConversionWorker(
@@ -489,8 +570,57 @@ class MainWindow(QMainWindow):
         elif state == "Converting":
             status_item.setForeground(Qt.cyan)
 
+
+    def check_for_updates(self):
+        if hasattr(self, "update_worker") and self.update_worker.isRunning():
+            return
+        self.update_button.setEnabled(False)
+        self.update_status.setText("Checking for updates…" if self.language == "en" else "جارٍ البحث عن تحديثات…")
+        self.update_worker = UpdateWorker()
+        self.update_worker.finished_check.connect(self.update_check_finished)
+        self.update_worker.start()
+
+    def update_check_finished(self, available, version, detail):
+        self.update_button.setEnabled(True)
+        if available:
+            answer = QMessageBox.question(self, "Update available",
+                f"Version {version} is downloaded. Install it now?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            if answer == QMessageBox.Yes:
+                self.install_downloaded_update(detail)
+            else:
+                self.update_status.setText(f"Update {version} downloaded and ready.")
+            return
+        if detail == "already_latest":
+            message = "You are using the latest version." if self.language == "en" else "تستخدم أحدث إصدار."
+        elif detail == "asset_missing":
+            message = "Latest release has no Windows EXE asset." if self.language == "en" else "الإصدار الأخير لا يحتوي على ملف EXE."
+        elif detail == "frozen_required":
+            message = "Automatic installation requires the packaged EXE." if self.language == "en" else "التثبيت التلقائي يتطلب نسخة EXE."
+        else:
+            message = detail.replace("error:", "")
+        self.update_status.setText(message)
+        if detail.startswith("error:"):
+            QMessageBox.warning(self, "Update check", message)
+
+    def install_downloaded_update(self, downloaded_file):
+        if not getattr(sys, "frozen", False):
+            QMessageBox.warning(self, "Update", "Automatic replacement requires the packaged EXE.")
+            return
+        current_exe = Path(sys.executable).resolve()
+        updater = Path(tempfile.gettempdir()) / "eps_pdf_apply_update.bat"
+        script = (
+            "@echo off\\r\\n:retry\\r\\n"
+            f'copy /Y "{downloaded_file}" "{current_exe}" >nul\\r\\n'
+            "if errorlevel 1 (timeout /t 2 /nobreak >nul & goto retry)\\r\\n"
+            f'start "" "{current_exe}"\\r\\n'
+            'del "%~f0"\\r\\n'
+        )
+        updater.write_text(script, encoding="utf-8")
+        subprocess.Popen(["cmd.exe", "/c", str(updater)], creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        QApplication.quit()
+
     def conversion_finished(self):
-        self.convert_button.setEnabled(True)
         self.clear_button.setEnabled(True)
         completed = sum(self.table.item(row, 2).text() == "Completed" for row in range(self.table.rowCount()))
         failed = sum(self.table.item(row, 2).text() == "Failed" for row in range(self.table.rowCount()))
