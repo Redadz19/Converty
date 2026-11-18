@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -109,8 +109,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"EPS to PDF PRO {APP_VERSION}")
-        self.setMinimumSize(980, 700)
-        self.resize(1500, 1000)
+        self.setMinimumSize(900, 650)
+        self.resize(1180, 820)
         self.files = []
         self.worker = None
         self.ghostscript = locate_ghostscript()
@@ -132,7 +132,7 @@ class MainWindow(QMainWindow):
         self.header_panel.setObjectName("headerPanel")
         header = QHBoxLayout(self.header_panel)
         header.setContentsMargins(22, 16, 22, 16)
-        self.brand_icon = QLabel("📄")
+        self.brand_icon = QLabel("ورقة")
         self.brand_icon.setObjectName("brandIcon")
         header.addWidget(self.brand_icon)
         brand = QVBoxLayout()
@@ -266,74 +266,72 @@ class MainWindow(QMainWindow):
     def _apply_theme(self):
         self.setStyleSheet("""
             QMainWindow, QWidget {
-                background:#07152d; color:#edf4ff;
+                background:#eef1f4; color:#263442;
                 font-family:'Segoe UI','Arial'; font-size:10pt;
             }
             QFrame#headerPanel {
-                background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #102d59,stop:0.55 #071b42,stop:1 #241b63);
-                border:1px solid #1764bd; border-radius:15px;
+                background:#f8fafb; border:1px solid #d6dde4; border-radius:10px;
             }
-            QLabel#brandIcon { font-size:38pt; min-width:72px; }
-            QLabel#title { font-size:27pt; font-weight:800; color:#ffffff; }
-            QLabel#subtitle { color:#a9d4ff; font-size:12pt; font-style:italic; }
+            QLabel#title { font-size:22pt; font-weight:750; color:#263746; }
+            QLabel#subtitle { color:#71808e; font-size:10pt; }
             QLabel#versionBadge {
-                background:#087df5; color:white; border-radius:10px;
-                padding:8px 12px; font-size:13pt; font-weight:800;
+                background:#e7edf2; color:#45596c; border-radius:7px;
+                padding:6px 10px; font-size:10pt; font-weight:700;
             }
             QPushButton#languageButton {
-                background:#102c53; border:1px solid #3b75b9; border-radius:22px;
-                padding:10px 18px; font-weight:700;
+                background:#edf1f4; border:1px solid #cbd4dc; border-radius:7px;
+                padding:8px 13px; color:#35485a; font-weight:600;
             }
             QFrame#dropPanel {
-                background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #142e55,stop:1 #10264a);
-                border:2px dashed #3988e8; border-radius:16px;
+                background:#f8fafb; border:2px dashed #aab8c5; border-radius:10px;
             }
-            QLabel#dropTitle { font-size:19pt; font-weight:750; color:#f5f9ff; }
-            QLabel#dropHint { color:#a8c8ed; font-size:11pt; }
+            QLabel#dropTitle { font-size:16pt; font-weight:700; color:#34495b; }
+            QLabel#dropHint { color:#788795; font-size:10pt; }
             QPushButton {
-                background:#203a5f; border:1px solid #42658f; border-radius:9px;
-                padding:10px 17px; color:#f2f7ff; font-weight:650;
+                background:#e8edf1; border:1px solid #cbd4dc; border-radius:7px;
+                padding:9px 14px; color:#35485a; font-weight:600;
             }
-            QPushButton:hover { background:#31547f; }
-            QPushButton#addFiles { background:#087cf0; border:0; padding:12px 22px; font-size:11pt; }
-            QPushButton#addFolder { background:#079b43; border:0; padding:12px 22px; font-size:11pt; }
+            QPushButton:hover { background:#dce4ea; }
+            QPushButton#addFiles { background:#526f89; color:white; border:0; padding:10px 18px; }
+            QPushButton#addFolder { background:#687f75; color:white; border:0; padding:10px 18px; }
             QTableWidget#fileTable {
-                background:#0b1b34; alternate-background-color:#102442;
-                border:1px solid #294b76; border-radius:11px;
-                gridline-color:#203c61; selection-background-color:#174b85;
+                background:#ffffff; alternate-background-color:#f4f6f8;
+                border:1px solid #d5dde4; border-radius:8px;
+                gridline-color:#e5e9ed; selection-background-color:#dce7f0;
+                selection-color:#263442;
             }
             QHeaderView::section {
-                background:#1a3459; color:#e5efff; padding:12px;
-                border:0; border-right:1px solid #29466d; font-weight:750; font-size:10pt;
+                background:#e9eef2; color:#435565; padding:10px;
+                border:0; border-right:1px solid #d7dfe6; font-weight:700;
             }
-            QTableWidget::item { padding:8px; }
+            QTableWidget::item { padding:7px; }
             QFrame#settingsPanel {
-                background:#102849; border:1px solid #28558b; border-radius:13px;
+                background:#f8fafb; border:1px solid #d6dde4; border-radius:9px;
             }
-            QLabel#sectionTitle { font-size:14pt; font-weight:800; color:#f4f8ff; }
-            QLabel#settingLabel { color:#d5e7ff; font-weight:700; font-size:10pt; }
-            QFrame#verticalSeparator { color:#42658c; }
+            QLabel#sectionTitle { font-size:12pt; font-weight:750; color:#34495b; }
+            QLabel#settingLabel { color:#526475; font-weight:650; font-size:9pt; }
+            QFrame#verticalSeparator { color:#d2dae1; }
             QLineEdit, QComboBox {
-                background:#0c1e3a; border:1px solid #35577f; border-radius:7px;
-                padding:9px 10px; color:#f2f7ff; min-height:22px;
+                background:#ffffff; border:1px solid #cbd4dc; border-radius:6px;
+                padding:7px 9px; color:#2d3d4c; min-height:20px;
             }
             QComboBox QAbstractItemView {
-                background:#102849; color:#f2f7ff; selection-background-color:#176ac4;
+                background:#ffffff; color:#2d3d4c; selection-background-color:#e3ebf1;
             }
-            QPushButton#browseButton { background:#087cf0; border:0; }
-            QLabel#status { color:#39e36f; font-weight:800; font-size:11pt; min-width:130px; }
+            QPushButton#browseButton { background:#e4eaf0; border:1px solid #cbd4dc; }
+            QLabel#status { color:#60786c; font-weight:700; font-size:10pt; min-width:130px; }
             QProgressBar {
-                background:#1b355b; border:0; border-radius:7px;
-                height:15px; color:white; text-align:center; font-weight:700;
+                background:#e1e7ec; border:0; border-radius:6px;
+                height:13px; color:#34495b; text-align:center; font-weight:650;
             }
-            QProgressBar::chunk { background:#087cf0; border-radius:7px; }
-            QPushButton#clearButton { padding:12px 18px; }
+            QProgressBar::chunk { background:#8298a9; border-radius:6px; }
+            QPushButton#clearButton { padding:10px 15px; }
             QPushButton#primary {
-                background:#086ff0; border:0; border-radius:10px;
-                color:white; padding:14px 22px; font-size:11pt; font-weight:800;
+                background:#526f89; border:0; border-radius:7px;
+                color:white; padding:11px 17px; font-size:10pt; font-weight:700;
             }
-            QPushButton#primary:hover { background:#2587ff; }
-            QPushButton:disabled { color:#8195b1; background:#263b59; }
+            QPushButton#primary:hover { background:#435f78; }
+            QPushButton:disabled { color:#98a4ae; background:#e4e8ec; }
         """)
 
     def _translate(self):
@@ -409,6 +407,8 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, 3, QTableWidgetItem(path.stem + ".pdf"))
             known.add(str(path).casefold())
         self.status.setText(f"●  {len(self.files)} EPS file(s) queued")
+        if discovered and not (self.worker and self.worker.isRunning()):
+            self.start_conversion()
 
     def choose_output(self):
         selected = QFileDialog.getExistingDirectory(self, "Choose output folder", str(self.output_dir))
@@ -425,6 +425,8 @@ class MainWindow(QMainWindow):
         self.status.setText("●  Ready" if self.language == "en" else "●  جاهز")
 
     def start_conversion(self):
+        if self.worker and self.worker.isRunning():
+            return
         if not self.files:
             QMessageBox.information(self, "EPS to PDF PRO", "Add at least one EPS file first.")
             return
@@ -436,13 +438,17 @@ class MainWindow(QMainWindow):
             return
         self.output_dir.mkdir(parents=True, exist_ok=True)
         jobs = []
-        for source in self.files:
+        for row_index, source in enumerate(self.files):
+            if self.table.item(row_index, 2).text() != "Queued":
+                continue
             target = self.output_dir / f"{source.stem}.pdf"
             suffix = 1
             while target.exists():
                 target = self.output_dir / f"{source.stem}_{suffix}.pdf"
                 suffix += 1
             jobs.append((source, target))
+        if not jobs:
+            return
         self.convert_button.setEnabled(False)
         self.clear_button.setEnabled(False)
         self.progress.setValue(0)
@@ -476,6 +482,11 @@ class MainWindow(QMainWindow):
         self.clear_button.setEnabled(True)
         completed = sum(self.table.item(row, 2).text() == "Completed" for row in range(self.table.rowCount()))
         failed = sum(self.table.item(row, 2).text() == "Failed" for row in range(self.table.rowCount()))
+        pending = any(self.table.item(row, 2).text() == "Queued" for row in range(self.table.rowCount()))
+        if pending:
+            self.status.setText("●  More files queued…" if self.language == "en" else "●  ملفات إضافية في الانتظار…")
+            QTimer.singleShot(150, self.start_conversion)
+            return
         self.status.setText(f"●  Finished — {completed} completed, {failed} failed")
         QMessageBox.information(
             self, "Conversion finished",
