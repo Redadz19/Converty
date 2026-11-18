@@ -36,8 +36,13 @@ jobs:
           name: EPS-to-PDF-PRO-Windows-x64
           path: dist/EPS_to_PDF_PRO.exe
           if-no-files-found: error
-      - name: Publish release asset
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish GitHub Release for the updater
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v2.1.0
+          name: EPS to PDF PRO v2.1.0
+          target_commitish: main
           files: dist/EPS_to_PDF_PRO.exe
+          overwrite_files: true
+          make_latest: true
