@@ -25,7 +25,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Build standalone executable
-        run: pyinstaller --noconfirm --clean --onefile --windowed --name EPS_to_PDF_PRO src/main.py
+        run: pyinstaller --noconfirm --clean --onefile --windowed --add-data "assets;assets" --name EPS_to_PDF_PRO src/main.py
       - name: Verify executable
         run: |
           if (!(Test-Path "dist/EPS_to_PDF_PRO.exe")) { throw "Executable was not created." }
