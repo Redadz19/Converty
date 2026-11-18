@@ -1,4 +1,4 @@
-# EPS to PDF PRO 2.0
+# EPS to PDF PRO 2.1.1
 
 Modern Windows desktop utility for batch conversion of EPS / EPSF files to PDF using Ghostscript.
 
@@ -12,6 +12,7 @@ Modern Windows desktop utility for batch conversion of EPS / EPSF files to PDF u
 - Per-file status, progress and conversion summary
 - Arabic / English interface
 - About tab with publisher information and website
+- Waraqa logo as the Windows executable and application window icon
 - In-app update check and one-click EXE replacement from GitHub Releases
 - Windows x64 executable built automatically by GitHub Actions
 
@@ -32,7 +33,7 @@ python src\main.py
 Run `build.bat`. The executable is generated at `dist\EPS_to_PDF_PRO.exe`.
 
 ## GitHub Actions
-Every push to main builds a Windows executable and uploads it as an Actions artifact. A push to `main` builds the Windows executable and publishes the `v2.1.0` GitHub Release asset used by the in-app updater.
+Every push to main builds a Windows executable and uploads it as an Actions artifact. A push to `main` builds the Windows executable and publishes the `v2.1.1` GitHub Release asset used by the in-app updater.
 
 ## Ghostscript
 Install Ghostscript x64 and make `gswin64c.exe` available on PATH, or set the `GHOSTSCRIPT_EXE` environment variable to its full path.
