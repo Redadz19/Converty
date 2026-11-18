@@ -8,7 +8,7 @@ import urllib.request
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
-from PySide6.QtGui import QFont, QPixmap, QPainter
+from PySide6.QtGui import QFont, QPixmap, QPainter, QIcon
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QComboBox, QProgressBar, QLineEdit, QMessageBox, QFrame, QAbstractItemView, QTabWidget
 )
 
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.1.1"
 GITHUB_REPO = "Redadz19/Converty"
 RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -146,6 +146,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"EPS to PDF PRO {APP_VERSION}")
+        logo_root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+        logo_path = logo_root / "assets" / "waraqa.svg"
+        if logo_path.exists():
+            self.setWindowIcon(QIcon(str(logo_path)))
         self.setMinimumSize(900, 650)
         self.resize(1180, 820)
         self.files = []
@@ -177,8 +181,6 @@ class MainWindow(QMainWindow):
         self.brand_icon = QLabel()
         self.brand_icon.setObjectName("brandIcon")
         self.brand_icon.setFixedSize(66, 76)
-        logo_root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
-        logo_path = logo_root / "assets" / "waraqa.svg"
         if logo_path.exists():
             renderer = QSvgRenderer(str(logo_path))
             logo_pixmap = QPixmap(66, 76)
@@ -641,6 +643,9 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("EPS to PDF PRO")
+    logo_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent)) / "assets" / "waraqa.svg"
+    if logo_path.exists():
+        app.setWindowIcon(QIcon(str(logo_path)))
     app.setFont(QFont("Segoe UI", 10))
     window = MainWindow()
     window.show()
