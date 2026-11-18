@@ -612,11 +612,11 @@ class MainWindow(QMainWindow):
         current_exe = Path(sys.executable).resolve()
         updater = Path(tempfile.gettempdir()) / "eps_pdf_apply_update.bat"
         script = (
-            "@echo off\\r\n:retry\\r\n"
-            f'copy /Y "{downloaded_file}" "{current_exe}" >nul\\r\n'
-            "if errorlevel 1 (timeout /t 2 /nobreak >nul & goto retry)\\r\n"
-            f'start "" "{current_exe}"\\r\n'
-            'del "%~f0"\\r\n'
+            "@echo off\r\n:retry\r\n"
+            f'copy /Y "{downloaded_file}" "{current_exe}" >nul\r\n'
+            "if errorlevel 1 (timeout /t 2 /nobreak >nul & goto retry)\r\n"
+            f'start "" "{current_exe}"\r\n'
+            'del "%~f0"\r\n'
         )
         updater.write_text(script, encoding="utf-8")
         subprocess.Popen(["cmd.exe", "/c", str(updater)], creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
