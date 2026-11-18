@@ -321,7 +321,7 @@ class MainWindow(QMainWindow):
         self.about_version.setAlignment(Qt.AlignCenter)
         self.about_version.setObjectName("subtitle")
         about_layout.addWidget(self.about_version)
-        self.about_info = QLabel("Publisher: Riadh Terrouche. RedaDZ19\\nWebsite: www.waraka.com\\nEPS / EPSF to PDF conversion utility")
+        self.about_info = QLabel("Publisher: Riadh Terrouche. RedaDZ19\nWebsite: www.waraka.com\nEPS / EPSF to PDF conversion utility")
         self.about_info.setAlignment(Qt.AlignCenter)
         self.about_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
         about_layout.addWidget(self.about_info)
@@ -445,7 +445,7 @@ class MainWindow(QMainWindow):
             self.tabs.setTabText(1, "حول البرنامج")
             self.update_button.setText("التحقق من التحديثات")
             self.about_version.setText(f"الإصدار {APP_VERSION}")
-            self.about_info.setText("الناشر: Riadh Terrouche. RedaDZ19\\nالموقع: www.waraka.com\\nأداة تحويل ملفات EPS / EPSF إلى PDF")
+            self.about_info.setText("الناشر: Riadh Terrouche. RedaDZ19\nالموقع: www.waraka.com\nأداة تحويل ملفات EPS / EPSF إلى PDF")
             self.status.setText("●  جاهز")
         else:
             self.subtitle.setText("Professional EPS conversion workspace")
@@ -466,7 +466,7 @@ class MainWindow(QMainWindow):
             self.tabs.setTabText(1, "About")
             self.update_button.setText("Check for updates")
             self.about_version.setText(f"Version {APP_VERSION}")
-            self.about_info.setText("Publisher: Riadh Terrouche. RedaDZ19\\nWebsite: www.waraka.com\\nEPS / EPSF to PDF conversion utility")
+            self.about_info.setText("Publisher: Riadh Terrouche. RedaDZ19\nWebsite: www.waraka.com\nEPS / EPSF to PDF conversion utility")
             self.status.setText("●  Ready")
 
     def toggle_language(self):
@@ -612,11 +612,11 @@ class MainWindow(QMainWindow):
         current_exe = Path(sys.executable).resolve()
         updater = Path(tempfile.gettempdir()) / "eps_pdf_apply_update.bat"
         script = (
-            "@echo off\\r\\n:retry\\r\\n"
-            f'copy /Y "{downloaded_file}" "{current_exe}" >nul\\r\\n'
-            "if errorlevel 1 (timeout /t 2 /nobreak >nul & goto retry)\\r\\n"
-            f'start "" "{current_exe}"\\r\\n'
-            'del "%~f0"\\r\\n'
+            "@echo off\\r\n:retry\\r\n"
+            f'copy /Y "{downloaded_file}" "{current_exe}" >nul\\r\n'
+            "if errorlevel 1 (timeout /t 2 /nobreak >nul & goto retry)\\r\n"
+            f'start "" "{current_exe}"\\r\n'
+            'del "%~f0"\\r\n'
         )
         updater.write_text(script, encoding="utf-8")
         subprocess.Popen(["cmd.exe", "/c", str(updater)], creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
